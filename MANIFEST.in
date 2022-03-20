@@ -1,0 +1,3 @@
+include multimodal/resources/beep.wav
+include multimodal/file_info.csv
+include multimodal/tasks.csv

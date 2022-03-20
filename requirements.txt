@@ -1,0 +1,12 @@
+patool
+pyunpack
+vosk
+pydub
+youtube_dl
+torch
+transformers
+numpy
+pandas
+pdfminer.six
+pip install pyttsx3==2.7
+python-docx

@@ -1,5 +1,5 @@
 
-<img src="https://github.com/kritiksoman/Multimodal/blob/master/test_files/cover.png" width="1280" height="180"> <br>
+<img src="https://github.com/kritiksoman/Multimodal/blob/main/test_files/cover.png" width="1280" height="180"> <br>
 
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/kritiksoman/GIMP-ML/blob/GIMP3-ML/testscases/Demo%20Notebook.ipynb)

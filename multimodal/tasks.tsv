@@ -1,6 +1,6 @@
-multimodal_task	modes	base
-speech_ner_anonymizer	"[""ner"", ""stt""]"	"Text, Audio"
-speech_sentiment	"[""sentiment-analysis"", ""stt""]"	"Text, Audio"
-speech_question_answering	"[""question-answering"", ""stt""]"	"Text, Audio"
-doc_to_audio	"[""speak""]"	"Text, Audio"
-speech_generation	"[""stt"", ""text-generation"", ""speak""]"	"Text, Audio"
+multimodal_task	modes	base	input	output
+speech_ner_anonymizer	"[""ner"", ""stt""]"	"Text, Audio"	Audio	"Text, Audio"
+speech_sentiment	"[""sentiment-analysis"", ""stt""]"	"Text, Audio"	Audio	Text
+speech_question_answering	"[""question-answering"", ""stt""]"	"Text, Audio"	Audio	"Text, Audio"
+doc_to_audio	"[""speak""]"	"Text, Audio"	Text	Audio
+speech_generation	"[""stt"", ""text-generation"", ""speak""]"	"Text, Audio"	"Text, Audio"	Audio

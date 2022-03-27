@@ -1,4 +1,3 @@
-import copy
 import os
 import re
 import subprocess
@@ -72,8 +71,8 @@ class Audio(ModelLoader):
         #     print(e)
 
     def _enlarge_window(self, aud_dict, window_gap=0.1):
-        return int(np.floor((aud_dict['start'] - window_gap) * 1000)), int(
-            np.ceil((aud_dict['end'] + window_gap) * 1000))
+        return (int(np.floor((aud_dict['start'] - window_gap) * 1000)), int(
+            np.ceil((aud_dict['end'] + window_gap) * 1000)))
 
     def _get_audio_youtube(self, video_url, save_folder=None):
         video_info = youtube_dl.YoutubeDL().extract_info(
@@ -109,7 +108,21 @@ class Audio(ModelLoader):
         engine.runAndWait()
         return
 
-    def export(self, audio_path=None):
+    # def _export_speak(self, speak_text, audio_path=None):
+    #     if audio_path:
+    #         engine = pyttsx3.init()
+    #         engine.save_to_file(speak_text, audio_path)
+    #         engine.runAndWait()
+    #     else:
+    #         new_filename = self.audio_path.split(os.sep)[-1]
+    #         new_audio_path = self.audio_path[:-len(new_filename)]
+    #         ext = new_filename.split(".")[-1]
+    #         new_filename = new_filename[:-len(ext) - 1] + "_modified." + ext
+    #         engine = pyttsx3.init()
+    #         engine.save_to_file(speak_text, os.path.join(new_audio_path, new_filename))
+    #         engine.runAndWait()
+
+    def _export_pydub(self, audio_path=None):
         if audio_path:
             self.wf_pydub_modified.export(audio_path, format="wav")
         else:

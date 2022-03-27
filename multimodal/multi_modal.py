@@ -11,21 +11,25 @@ def MultiModal(mmtask, model_path=os.path.join(os.path.expanduser("~"), "multimo
     if not os.path.exists(model_path):
         os.makedirs(model_path)
     task_df = pd.read_csv(os.path.join(os.path.dirname(__file__), "tasks.tsv"), sep='\t')
+    if not mmtask in task_df['multimodal_task'].values:
+        print("Valid tasks: " + str(list(task_df['multimodal_task'])))
+        return
     base_classes = eval(str(list(task_df[task_df['multimodal_task'] == mmtask]['base']))[2:-2])
     tasks = eval(list(task_df[task_df['multimodal_task'] == mmtask]['modes'])[0])
 
     class MultiModalClass(*base_classes):
-        def __init__(self, tasks, model_path, vosk_logger=False):
+        def __init__(self, mmtask, tasks, model_path, vosk_logger=False):
             for base_class in base_classes:
                 base_class.__init__(self, tasks, model_path)
             if vosk_logger:
                 SetLogLevel(0)
             else:
                 SetLogLevel(-1)
+            self.mmtask = mmtask
             self.tasks = tasks
             self._download_load_models()
             self.beep_wf = AudioSegment.from_wav(os.path.join(os.path.dirname(__file__), "resources", "beep.wav"))
-            self.wf_pydub_modified = None
+            self.wf_pydub_modified, self.generated_texts, self.sentiment, self.q_answers = {}, {}, {}, {}
 
         def load(self, path=None, max_pages=2, page_numbers=None, save_folder=None):
             if path and "speech" in mmtask:
@@ -38,44 +42,63 @@ def MultiModal(mmtask, model_path=os.path.join(os.path.expanduser("~"), "multimo
                     self._load_docx(path)
                 print("Read doc file.")
 
-        def speak(self, text=None, generate=0, prompt_context=100):
-            if isinstance(text, str):
-                text = [text]
-            if text:
-                speak_text = text
-            # If input file has text
-            elif self.pdf_path:
-                speak_text = self.file_doc[self.pdf_path]
+        def export(self, path=None):
+            context_path = self._get_input_path()
+            if self.mmtask == 'speech_ner_anonymizer':
+                self._export_pydub(audio_path=path)
+            # elif self.mmtask == 'speech_generation':
+            #     speak_text = " ".join(self.generated_texts[context_path])
+            #     self._export_speak(speak_text, audio_path=path)
+
+        def _get_input_path(self):
+            if self.pdf_path:
+                input_path = self.pdf_path
             elif self.docx_path:
-                speak_text = self.file_doc[self.docx_path]
+                input_path = self.docx_path
             # If input audio file has text
             elif len(self.doc[self.audio_path]) > 0:
-                speak_text = self.doc[self.audio_path]
+                input_path = self.audio_path
+            return input_path
+
+        def speak(self, generated=False):
+            speak_path = self._get_input_path()
+            speak_text = self.doc[speak_path]
             # Speak existing text
-            for t in speak_text[-2:]:
+            for t in speak_text:
                 self._speak(t)
-            if generate:
-                prompt_text = " ".join(speak_text)
+            if generated:
+                for t in self.generated_texts[speak_path]:
+                    self._speak(t)
+
+        def generate(self, print_processing=True, prompt_context=100, n_sentences=1):
+            context_path = self._get_input_path()
+            context_text = self.doc[context_path]
+            # # Speak existing text
+            # for t in context_text[-2:]:
+            #     self._speak(t)
+            if len(context_text):
+                prompt_text = " ".join(context_text)
                 prompt_text = prompt_text.split(" ")[-prompt_context:]
                 # original_len = len(prompt_text)
                 prompt_text = " ".join(prompt_text)
-                generated_texts = []
-                while len(" ".join(generated_texts).split(" ")) < generate:
+                self.generated_texts[context_path] = []
+                while len(self.generated_texts[context_path]) < n_sentences:
                     complete_text = self.nlp(prompt_text, max_length=250)[0]['generated_text']
-                    generated_texts += [complete_text[:len(prompt_text)]]
+                    self.generated_texts[context_path] += [complete_text[len(prompt_text):]]
                     prompt_text = complete_text.split(" ")[-prompt_context:]
                     prompt_text = " ".join(prompt_text)
-                print(generated_texts)
-                for t in generated_texts:
-                    self._speak(t)
+                if print_processing:
+                    print(self.generated_texts[context_path])
+            return
 
-        def _listen(self, print_sentence=False, sentence_wise=True, task_function=None):
+        def _listen(self, print_sentence=False, sentence_wise=True, task_function=None, return_result=False):
             if self.wf.getnchannels() != 1 or self.wf.getsampwidth() != 2 or self.wf.getcomptype() != "NONE":
                 print("Audio file must be WAV format mono PCM. Converting format ...")
                 self._convert_to_mono(file_path=self.audio_path)
                 print("Conversion successful to 16 KHz mono wave file.")
                 self.load()
             self.doc[self.audio_path] = []
+            result = []
             while True:
                 data = self.wf.readframes(4000)
                 if len(data) == 0:
@@ -87,7 +110,7 @@ def MultiModal(mmtask, model_path=os.path.join(os.path.expanduser("~"), "multimo
                         print(sentence_text)
                     self.doc[self.audio_path] += [sentence_text]
                     if sentence_wise and task_function:
-                        task_function(rec_dict)
+                        result.append(task_function(rec_dict))
                 else:
                     pass
             rec_dict = eval(self.rec.Result())
@@ -96,58 +119,70 @@ def MultiModal(mmtask, model_path=os.path.join(os.path.expanduser("~"), "multimo
             if print_sentence:
                 print(sentence_text)
             if sentence_wise and task_function:
-                task_function(rec_dict)
-            return
+                result.append(task_function(rec_dict))
+            if return_result:
+                return result
+            else:
+                return
 
         def listen(self):
             self._listen()
             return
 
-        def get_answer(self, question):
-            self._listen(sentence_wise=False)
+        def get_answer(self, question, print_processing=True):
+            self._listen(print_sentence=print_processing, sentence_wise=False)
             answer = self.nlp(question=question, context=".".join(self.doc[self.audio_path]))
-            print(answer)
+            self.q_answers[(self.audio_path,question)] = [answer]
+            if print_processing:
+                print(answer)
             return answer
 
-        def get_sentiment(self):
-            self._listen(print_sentence=True, task_function=self._get_sentiment)
+        def get_sentiment(self, print_processing=True):
+            self.sentiment[self.audio_path] = []
+            self._listen(print_sentence=print_processing, task_function=lambda x: self._get_sentiment(print_processing))
             return
 
-        def _get_sentiment(self, rec_dict):
+        def _get_sentiment(self, print_processing):
             # rec_dict = eval(self.rec.Result())
             sentiment_score = self.nlp(self.doc[self.audio_path][-1])
-            print(sentiment_score)
+            self.sentiment[self.audio_path] += [sentiment_score]
+            if print_processing:
+                print(sentiment_score)
             return
 
-        def anonymize(self, ner_theta=0.8, ner_window_gap=0.1, return_audio=True):
-            self._listen(print_sentence=True, task_function=lambda x: self._mute_ner(x, ner_theta=ner_theta,
-                                                                                     ner_window_gap=ner_window_gap))
+        def anonymize(self, ner_theta=0.8, ner_window_gap=0.2, return_audio=True, print_processing=True):
+            self.wf_pydub_modified[self.audio_path] = copy.deepcopy(self.wf_pydub)
+            mute_rec = self._listen(print_sentence=print_processing, return_result=True,
+                                    task_function=lambda x: self._mute_ner(x, ner_theta=ner_theta,
+                                                                           print_processing=print_processing))
+            mute_rec = [self._enlarge_window(rec, ner_window_gap) for recs in mute_rec for rec in recs]
+            if len(mute_rec) > 0:
+                # fix overlapping time durations
+                mute_rec_fix = [(mute_rec[0][0], mute_rec[0][1])]
+                mute_rec_fix += [(mute_rec[i - 1][1], mute_rec[i][1]) if mute_rec[i][0] < mute_rec[i - 1][1]
+                                 else (mute_rec[i][0], mute_rec[i][1]) for i in range(1, len(mute_rec))]
+                mute_start0, mute_end0 = mute_rec_fix[0]
+                unmute_rec = [self.wf_pydub[:mute_start0]]
+                for x in mute_rec_fix[1:]:
+                    mute_start, mute_end = x
+                    if mute_start - mute_end0 > 0:
+                        unmute_rec += [self.wf_pydub[mute_end0:mute_start]]
+                    mute_end0 = mute_end
+                unmute_rec += [self.wf_pydub[mute_end0:]]
+                self.wf_pydub_modified[self.audio_path] = self._mute_wf(unmute_rec)
             if return_audio:
-                return self.wf_pydub_modified
+                return self.wf_pydub_modified[self.audio_path]
             else:
                 return
 
-
-        def _mute_ner(self, rec_dict, ner_theta, ner_window_gap):
-            # rec_dict = eval(self.rec.Result())
+        def _mute_ner(self, rec_dict, ner_theta, print_processing):
             rec_ner = self.nlp(rec_dict["text"])
             rec_ner = list(filter(lambda x: x['score'] > ner_theta, rec_ner))
             rec_ner = self._merge_rec_ner(rec_dict["text"], rec_ner)
             ner_tokens = [tok for span in rec_ner for tok in span['text'].split(" ")]
             ner_tokens_rec = list(filter(lambda x: any([x['word'] in ner_tokens]), rec_dict['result']))  # change
-            print(ner_tokens_rec)
-            if len(ner_tokens_rec) > 0:
-                aud_dict = ner_tokens_rec[0]
-                mute_start0, mute_end0 = self._enlarge_window(aud_dict, ner_window_gap)
-                mute_start, mute_end = copy.deepcopy(mute_start0), copy.deepcopy(mute_end0)
-                unmute_rec = [self.wf_pydub[:mute_start0]]
-                for x in ner_tokens_rec[1:]:
-                    aud_dict = x
-                    mute_start, mute_end = self._enlarge_window(aud_dict, ner_window_gap)
-                    unmute_rec += [self.wf_pydub[mute_end0:mute_start]]
-                    mute_end0 = mute_start
-                unmute_rec += [self.wf_pydub[mute_end:]]
-                self.wf_pydub_modified = self._mute_wf(unmute_rec)
-            return rec_dict
+            if print_processing:
+                print(ner_tokens_rec)
+            return ner_tokens_rec
 
-    return MultiModalClass(tasks, model_path, vosk_logger)
+    return MultiModalClass(mmtask, tasks, model_path, vosk_logger)

@@ -62,7 +62,7 @@ class ModelLoader:
         tokenizer = AutoTokenizer.from_pretrained(self.model_folders[task])
         if task == 'ner':
             model = AutoModelForTokenClassification.from_pretrained(self.model_folders[task])
-            self.nlp = pipeline(task, model=model, tokenizer=tokenizer, grouped_entities=True)
+            self.nlp = pipeline(task, model=model, tokenizer=tokenizer)#, grouped_entities=True)
         elif task == 'sentiment-analysis':
             model = AutoModelForSequenceClassification.from_pretrained(self.model_folders[task])
             self.nlp = pipeline(task, model=model, tokenizer=tokenizer)

@@ -31,15 +31,15 @@ class Text(ModelLoader):
         while len(prediction) > 0:
             prediction.sort(key=lambda x: x['start'])
             current = prediction[0]
-            current_tag = prediction[0]['entity_group']
+            current_tag = prediction[0]['entity'][2:]
             neighbours = list(filter(
-                lambda x: (current['start'] == x['end'] or current['end'] == x['start']) and current['entity_group'] ==
-                          x['entity_group'], prediction))
+                lambda x: (current['start'] == x['end'] or current['end'] == x['start']) and current['entity'][2:] ==
+                          x['entity'][2:], prediction))
             if len(neighbours) >= 1:
                 start = min([current] + neighbours, key=lambda x: x['start'])['start']
                 end = max([current] + neighbours, key=lambda x: x['end'])['end']
                 score = min([current] + neighbours, key=lambda x: x['score'])['score']
-                prediction.append({'start': start, 'end': end, 'entity_group': current_tag, 'score': score})
+                prediction.append({'start': start, 'end': end, 'entity': current_tag, 'score': score})
                 for neighbour in neighbours:
                     prediction.remove(neighbour)
             else:
@@ -50,4 +50,3 @@ class Text(ModelLoader):
         for entity in merged_prediction:
             entity['text'] = text[entity['beginPosition']:entity['endPosition']]
         return merged_prediction
-

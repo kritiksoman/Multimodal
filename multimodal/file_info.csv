@@ -1,6 +1,6 @@
 task,folder,url,,description
 stt,vosk-model-en-us-0.22,https://alphacephei.com/vosk/models/vosk-model-en-us-0.22.zip,,
-ner,distilbert-base-uncased-finetuned-conll03-english,https://huggingface.co/elastic/distilbert-base-uncased-finetuned-conll03-english,,
-sentiment-analysis,bert-base-multilingual-uncased-sentiment,https://huggingface.co/nlptown/bert-base-multilingual-uncased-sentiment,,
-question-answering,distilbert-base-uncased-finetuned-squad2,https://huggingface.co/mvonwyl/distilbert-base-uncased-finetuned-squad2,,
-text-generation,gpt2,https://huggingface.co/gpt2,,
+ner,distilbert-base-uncased-finetuned-conll03-english,elastic/distilbert-base-uncased-finetuned-conll03-english,,
+sentiment-analysis,bert-base-multilingual-uncased-sentiment,nlptown/bert-base-multilingual-uncased-sentiment,,
+question-answering,distilbert-base-uncased-finetuned-squad2,mvonwyl/distilbert-base-uncased-finetuned-squad2,,
+text-generation,gpt2,gpt2,,

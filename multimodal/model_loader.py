@@ -5,6 +5,7 @@ import pandas as pd
 from transformers import AutoTokenizer, AutoModelForTokenClassification, pipeline, AutoModelForSequenceClassification, \
     AutoModelForQuestionAnswering, AutoModelForCausalLM
 from vosk import Model
+import gdown
 
 
 class ModelLoader:
@@ -77,18 +78,32 @@ class ModelLoader:
 
     def _download_transformers_model(self, task):
         try:
-            # Install Git - LFS on non windows
-            if os.name != 'nt':
-                p_git_lfs = subprocess.Popen('apt-get install git-lfs ', shell=True, stdout=subprocess.PIPE)
-                p_git_lfs.wait()
-                p_git_lfs.stdout.readlines()
-                print("Git LFS installed.")
-            git_command = 'git lfs clone ' + self.model_urls[task] + ' "' + self.model_folders[task] + '"'
-            p_dl_ner = subprocess.Popen(git_command, shell=True, stdout=subprocess.PIPE)
-            p_dl_ner.wait()
-            p_dl_ner.stdout.readlines()
-            print("Transformers NER Model downloaded.")
-            return
+            tokenizer = AutoTokenizer.from_pretrained(self.model_urls[task])
+            if task == 'ner':
+                model = AutoModelForTokenClassification.from_pretrained(self.model_urls[task])
+            elif task == 'sentiment-analysis':
+                model = AutoModelForSequenceClassification.from_pretrained(self.model_urls[task])
+            elif task == 'question-answering':
+                model = AutoModelForQuestionAnswering.from_pretrained(self.model_urls[task])
+            elif task == 'text-generation':
+                model = AutoModelForCausalLM.from_pretrained(self.model_urls[task])
+
+            tokenizer.save_pretrained(self.model_folders[task])
+            model.save_pretrained(self.model_folders[task])
+            tokenizer, model = None, None
+
+            # # Install Git - LFS on non windows
+            # if os.name != 'nt':
+            #     p_git_lfs = subprocess.Popen('apt-get install git-lfs ', shell=True, stdout=subprocess.PIPE)
+            #     p_git_lfs.wait()
+            #     p_git_lfs.stdout.readlines()
+            #     print("Git LFS installed.")
+            # git_command = 'git lfs clone ' + self.model_urls[task] + ' "' + self.model_folders[task] + '"'
+            # p_dl_ner = subprocess.Popen(git_command, shell=True, stdout=subprocess.PIPE)
+            # p_dl_ner.wait()
+            # p_dl_ner.stdout.readlines()
+            # print("Transformers NER Model downloaded.")
+            # return
         except Exception as e:
             print("NER Model Download failed.")
 
@@ -109,6 +124,7 @@ class ModelLoader:
                 'curl ' + self.model_urls['stt'] + ' --output "' + self.model_folders['stt'] + '.zip"',
                 shell=True, stdout=subprocess.PIPE)
             p_dl_vosk.wait()
+            gdown.download(self.model_urls['stt'], self.model_folders['stt'] + '.zip', quiet=False)
             print("VOSK Model Downloaded.")
             # p_unzip_vosk = subprocess.Popen('unzip vosk-model-en-us-0.22.zip', shell=True, stdout=subprocess.PIPE)
             # p_unzip_vosk.wait()
@@ -129,12 +145,19 @@ class ModelLoader:
         return ffmpeg_folder
 
     def _check_ffmpeg_download(self):
-        ffmpeg_path = os.path.join(os.path.expanduser("~"), "multimodal", "resources",
-                                   self._get_ffmpeg_folder_name(), "bin", "ffmpeg")
         if os.name == 'nt':
-            ffmpeg_path += '.exe'
-        if not os.path.isfile(ffmpeg_path):
-            self._ffmpeg_download()
+            ffmpeg_path = os.path.join(os.path.expanduser("~"), "multimodal", "resources",
+                                   self._get_ffmpeg_folder_name(), "bin", "ffmpeg") + '.exe'
+            if not os.path.isfile(ffmpeg_path):
+                self._ffmpeg_download()
+        else:
+            # ffmpeg_available = True
+            try:
+                ffmpeg_path = subprocess.check_output(['which', 'ffmpeg'])
+            except Exception as e:
+                # print(e, e.output)
+                # ffmpeg_available = False
+                print("Please install FFMPEG with sudo apt  install ffmpeg.")
         # try:
         #     p_dl_ffmpeg = subprocess.Popen(
         #         os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources",
@@ -158,12 +181,13 @@ class ModelLoader:
             p_dl_ffmpeg.wait()
             p_dl_ffmpeg.stdout.readlines()
             print("Downloaded FFMPEG.")
+            try:
+                from pyunpack import Archive
+                Archive(os.path.join(os.path.expanduser("~"), "multimodal", "resources", "ffmpeg-git-full.7z")).\
+                    extractall((os.path.join(os.path.expanduser("~"), "multimodal", "resources")))
+                print("Extracted FFMPEG Folder.")
+            except Exception as e:
+                print("Failed to extract FFMPEG.")
         except Exception as e:
             print("Failed to download FFMPEG.")
-        try:
-            from pyunpack import Archive
-            Archive(os.path.join(os.path.expanduser("~"), "multimodal", "resources", "ffmpeg-git-full.7z")).extractall((
-                os.path.join(os.path.expanduser("~"), "multimodal", "resources")))
-            print("Extracted FFMPEG Folder.")
-        except Exception as e:
-            print("Failed to extract FFMPEG.")
+

@@ -43,7 +43,7 @@ def MultiModal(mmtask, model_path=os.path.join(os.path.expanduser("~"), "multimo
                 print("Read doc file.")
 
         def export(self, path=None):
-            context_path = self._get_input_path()
+            context_path, _ = self._get_input_path()
             if self.mmtask == 'speech_ner_anonymizer':
                 self._export_pydub(audio_path=path)
             # elif self.mmtask == 'speech_generation':
@@ -53,16 +53,19 @@ def MultiModal(mmtask, model_path=os.path.join(os.path.expanduser("~"), "multimo
         def _get_input_path(self):
             if self.pdf_path:
                 input_path = self.pdf_path
+                input_data = self.file_doc[self.pdf_path]
             elif self.docx_path:
                 input_path = self.docx_path
+                input_data = self.file_doc[self.docx_path]
             # If input audio file has text
             elif len(self.doc[self.audio_path]) > 0:
                 input_path = self.audio_path
-            return input_path
+                input_data = self.doc[self.audio_path]
+            return input_path, input_data
 
         def speak(self, generated=False):
-            speak_path = self._get_input_path()
-            speak_text = self.doc[speak_path]
+            speak_path, speak_text = self._get_input_path()
+            # speak_text = self.doc[speak_path]
             # Speak existing text
             for t in speak_text:
                 self._speak(t)
@@ -71,8 +74,8 @@ def MultiModal(mmtask, model_path=os.path.join(os.path.expanduser("~"), "multimo
                     self._speak(t)
 
         def generate(self, print_processing=True, prompt_context=100, n_sentences=1):
-            context_path = self._get_input_path()
-            context_text = self.doc[context_path]
+            context_path, context_text = self._get_input_path()
+            # context_text = self.doc[context_path]
             # # Speak existing text
             # for t in context_text[-2:]:
             #     self._speak(t)

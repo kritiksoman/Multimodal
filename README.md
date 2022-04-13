@@ -39,3 +39,15 @@ sg.speak(generated=True)
 ```Python
 pip install .
 ```
+
+# Citation
+Please cite using the following bibtex entry:
+
+```
+@article{soman2022Multimodal,
+  title={Multimodal},
+  author={Soman, Kritik},
+  url={https://github.com/kritiksoman/Multimodal},
+  year={2022}
+}
+```

@@ -2,6 +2,7 @@ import os
 import subprocess
 import zipfile
 import pandas as pd
+import torch.cuda
 from transformers import AutoTokenizer, AutoModelForTokenClassification, pipeline, AutoModelForSequenceClassification, \
     AutoModelForQuestionAnswering, AutoModelForCausalLM
 from vosk import Model
@@ -63,16 +64,17 @@ class ModelLoader:
         tokenizer = AutoTokenizer.from_pretrained(self.model_folders[task])
         if task == 'ner':
             model = AutoModelForTokenClassification.from_pretrained(self.model_folders[task])
-            self.nlp = pipeline(task, model=model, tokenizer=tokenizer)#, grouped_entities=True)
+            self.nlp = pipeline(task, model=model, tokenizer=tokenizer, device=0 if torch.cuda.is_available() else -1)
+            #, grouped_entities=True)
         elif task == 'sentiment-analysis':
             model = AutoModelForSequenceClassification.from_pretrained(self.model_folders[task])
-            self.nlp = pipeline(task, model=model, tokenizer=tokenizer)
+            self.nlp = pipeline(task, model=model, tokenizer=tokenizer, device=0 if torch.cuda.is_available() else -1)
         elif task == 'question-answering':
             model = AutoModelForQuestionAnswering.from_pretrained(self.model_folders[task])
-            self.nlp = pipeline(task, model=model, tokenizer=tokenizer)
+            self.nlp = pipeline(task, model=model, tokenizer=tokenizer, device=0 if torch.cuda.is_available() else -1)
         elif task == 'text-generation':
             model = AutoModelForCausalLM.from_pretrained(self.model_folders[task])
-            self.nlp = pipeline(task, model=model, tokenizer=tokenizer)
+            self.nlp = pipeline(task, model=model, tokenizer=tokenizer, device=0 if torch.cuda.is_available() else -1)
         tokenizer, model = None, None
         return
 

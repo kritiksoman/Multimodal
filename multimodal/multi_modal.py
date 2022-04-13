@@ -1,3 +1,4 @@
+import torch
 from pydub import AudioSegment
 from vosk import KaldiRecognizer, SetLogLevel
 from .audio import Audio
@@ -25,6 +26,7 @@ def MultiModal(mmtask, model_path=os.path.join(os.path.expanduser("~"), "multimo
                 SetLogLevel(0)
             else:
                 SetLogLevel(-1)
+            # self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
             self.mmtask = mmtask
             self.tasks = tasks
             self._download_load_models()

@@ -38,6 +38,7 @@ setup(
         "pandas",
         "pdfminer.six",
         "pyttsx3==2.7",
-        "python-docx"
+        "python-docx",
+        "gdown"
     ]
 )

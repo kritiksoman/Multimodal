@@ -2,7 +2,7 @@
 <img src="https://github.com/kritiksoman/Multimodal/blob/main/test_files/cover.png" width="1280" height="180"> <br>
 
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/kritiksoman/GIMP-ML/blob/GIMP3-ML/testscases/Demo%20Notebook.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/kritiksoman/GIMP-ML/blob/GIMP3-ML/testscases/Demo%20Notebook.ipynb) :star: :star: :star: :star: are welcome.
 ```Python
 from multimodal import MultiModal
 sa = MultiModal("speech_ner_anonymizer")
